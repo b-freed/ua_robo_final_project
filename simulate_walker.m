@@ -97,11 +97,6 @@ function total_dist = simulate_walker(T,controller,plot)
        s = [s 2*sin(y0(1))];                                 	%#ok<AGROW> % Append last stride length to stride vector
        
        
-    
-    
-
-    
-
     end
     
     %truncate these sequences down to the time span we want
@@ -186,10 +181,6 @@ ydot = [y(2);
         sin(y(1)-gam)+sin(y(3))*(y(2)*y(2)-cos(y(1)-gam))+F];
    
 end
-
-
-
-    
 
 
 function [val,ist,dir]=collision(t,y) %#ok<INUSL>
