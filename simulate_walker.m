@@ -1,4 +1,4 @@
-function total_dist = simulate_walker(T,controller,plot)
+function total_dist = simulate_walker(T,controller,ifplot)
 
     %   Simulates an active walking robot from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -43,7 +43,7 @@ function total_dist = simulate_walker(T,controller,plot)
     %k = -0.08;
 %     k = 0
     % Integration time parameters
-    
+  
 
     per = 5;        % Max number of seconds allowed per step
 
@@ -104,7 +104,7 @@ function total_dist = simulate_walker(T,controller,plot)
     t = t(t <= T);
     tci = tci(tci <= length(t));
     
-    if plot
+    if ifplot
 
         % Graph collision map
         figure(1)
@@ -154,7 +154,7 @@ function total_dist = simulate_walker(T,controller,plot)
     % gam is angle of slope
     % tci is Collision index vector
 
-    if plot
+    if ifplot
         [total_step, total_dist] = wmview(y,gam,tci);
     else
         [total_step, total_dist] = wmview_no_plotting(y,gam,tci);
@@ -185,6 +185,7 @@ end
 
 function [val,ist,dir]=collision(t,y) %#ok<INUSL>
 % Check for heelstrike collision using zero-crossing detection
+
 
 val = y(3)-2*y(1);  % Geometric collision condition, when = 0
 ist = 1;			% Stop integrating if collision found
