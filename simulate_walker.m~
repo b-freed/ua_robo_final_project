@@ -53,21 +53,19 @@ function total_dist = simulate_walker(T,controller,ifplot)
     % IC constants
     alpha = asin(0.5*s);
     
-    disp(controller)
     % ==================================
     % Stochasitcity NO.1 - system disturbance
     % ==================================
-%     mu = 0;
-%     sigma = 1;
-%     height = 1/sqrt(2*pi*sigma^2);
-%     scaling_factor = 0.1;
-%     epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize guassian
-%     
-%     for i = 1:length(controller)  % controller will be either row or col vector
-%         controller(i) = controller(i) + epsilon;
-%     end
-    % ==================================
-    % ==================================
+    
+    mu = 0;
+    sigma = 1;
+    height = 1/sqrt(2*pi*sigma^2);
+    scalaing_factor = 0.1
+    epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize 
+    
+    for i = 1:length(controller)  % controller will be either row or col vector
+        controller(i) = controller + epsilon
+    end
 
     % Toe-off impulse applied at heelstrike condition
     if a == 0
@@ -205,17 +203,14 @@ function [val,ist,dir]=collision(t,y) %#ok<INUSL>
 % ==================================
 % Stochasitcity NO.2 - bumpy terrain
 % ==================================
+
 mu = 0;
-sigma = 1;
-height = 1/sqrt(2*pi*sigma^2);
-scaling_factor = 0.01;
-epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize guassian
+sigma = 0.005;
+height = normrnd(mu,sigma);
+epsilon  = normrnd(mu,sigma) / height;
 
-val = y(3)-2*y(1) + epsilon;  % Geometric collision condition, when = 0
+val = y(3)-2*y(1) + abs(height);  % Geometric collision condition, when = 0
 % val = y(3)-2*y(1);  % Geometric collision condition, when = 0
-
-% ==================================
-% ==================================
 
 ist = 1;			% Stop integrating if collision found
 dir = 1;			% Condition only true when passing from - to +

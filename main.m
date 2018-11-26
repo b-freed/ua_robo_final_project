@@ -12,10 +12,11 @@ T = 100
 
 controller = @(t,y) original_controller(y,t,a,tau,k)
 
+disp(controller)
+
 ifplot = true;
 
 total_dist = simulate_walker(T,controller,ifplot)
-
 
 
 function F = original_controller(y,t,a,tau,k)
