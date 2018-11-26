@@ -139,7 +139,7 @@ for j=1:length(tci)-1  % tci is the collision index vector
     
     % !!!! added features !!!!
     if hip_position_y <= 0
-        disp('walking failed')
+%         disp('walking failed')
         break;
     else
         total_step = total_step + 1;

@@ -1,4 +1,4 @@
-function total_dist = simulate_walker(T,controller,plot)
+function total_dist = simulate_walker(T,max_steps,controller,plot)
 
     %   Simulates an active walking robot from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -27,7 +27,7 @@ function total_dist = simulate_walker(T,controller,plot)
     %   Andrew D. Horchler, horchler @ gmail . com, Created 7-7-04
     %   Revision: 1.1, 5-1-16
 
-
+    dt = .01;
     % Gamma: angle of slope (radians), used by integration function
     
     gam = 0;  % gam = 0  means it's walking on the flat ground
@@ -74,14 +74,17 @@ function total_dist = simulate_walker(T,controller,plot)
     y = [];         % Vector to save states
     t = [];         % Vector to save times
     tci = 0;        % Collision index vector
+    
     h = [0 per];	% Integration period in seconds
 
     % Set integration tolerances, turn on collision detection, add more output points
     opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',@collision);
+%     opts = odeset('Events',@collision);
 
     % Loop to perform integration of a noncontinuous function
     tf = 0;
-    while tf <= T
+    step = 0;
+    while tf <= T && step <= max_steps
        [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y)),h,y0,opts); % Integrate for one stride
        y = [y;yout];                                         	%#ok<AGROW> % Append states to state vector
        t = [t;tout];                                            %#ok<AGROW> % Append times to time vector
@@ -95,6 +98,7 @@ function total_dist = simulate_walker(T,controller,plot)
        tci = [tci length(t)];                                   %#ok<AGROW> % Append collision index to collision vector
        h = tf+[0 per];                                   	% New time step
        s = [s 2*sin(y0(1))];                                 	%#ok<AGROW> % Append last stride length to stride vector
+       step = step + 1;
        
        
     

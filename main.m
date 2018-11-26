@@ -37,6 +37,7 @@ n_params = n_W1 + n_b1 + n_W2 + n_b2
 % SIGMA = eye(n_params)
 % [W1,b1,W2,b2] = sample_params(MU,SIGMA,n_hidden)
 % 
+tanh_activ = @(x) tanh(x)
 sigmoid_activ = @(x) 1./(1 + exp(-x));
 linear_activ = @(x) x
 % 
@@ -44,32 +45,36 @@ linear_activ = @(x) x
 % 
 % F = nn_controller(y,W1,b1,W2,b2,sigmoid_activ,linear_activ)
 
-sigma = 1
-N = 100
+sigma = .01
+N = 10
 num_iters = 100
 T = 100
-alpha = .001
+max_steps = 100
+alpha = .001%.00001
 params = zeros(1,n_params)
 sigma = 1
 activ1 = sigmoid_activ
-activ2 = linear_activ
-
+% activ2 = tanh_activ%sigmoid_activ%linear_activ
+activ2 = sigmoid_activ
 
 for iter = 1:num_iters
     perturbations = mvnrnd(zeros(n_params,1),eye(n_params),N);  %might want to replace this with sampling from a univariate guassian since it's always spherical
     test_params = params + sigma*perturbations;
-    scores = zeros(1,N)
+    scores = zeros(1,N);
     for i = 1:N
-        scores(i) = score_params(test_params(i,:),n_hidden,activ1,activ2,T,false);
-        i
-        scores(i)
+        scores(i) = score_params(test_params(i,:),n_hidden,activ1,activ2,T,max_steps,false);
+%         i
+%         scores(i)
     end
     disp('mean score: ')
-    mean(scores)
+    disp(mean(scores))
     disp('iter: ')
     disp(iter)
-    delta = alpha*(1/(N*sigma))*sum(scores*perturbations)
+    delta = alpha*(1/(N*sigma))*sum(scores'.*perturbations,1);
     params = params + delta;
+    disp('norm params')
+    disp(norm(params))
+%     alpha = alpha/iter
 end
     
         
