@@ -1,4 +1,4 @@
-function total_dist = simulate_walker(T,controller)
+function total_dist = simulate_walker(T,controller,plot)
 
     %   Simulates an active walking robot from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -80,12 +80,12 @@ function total_dist = simulate_walker(T,controller)
     opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',@collision);
 
     % Loop to perform integration of a noncontinuous function
-    tf = 0
+    tf = 0;
     while tf <= T
        [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y)),h,y0,opts); % Integrate for one stride
        y = [y;yout];                                         	%#ok<AGROW> % Append states to state vector
-       t = [t;tout]                                            %#ok<AGROW> % Append times to time vector
-       tf = t(end)
+       t = [t;tout];                                            %#ok<AGROW> % Append times to time vector
+       tf = t(end);
        c2y1 = cos(2*y(end,1));                               	% Calculate once for new ICs
        s2y1p = sin(2*y(end,1))*P;                               % Calculate once for new ICs
        y0 = [-y(end,1);
@@ -105,58 +105,65 @@ function total_dist = simulate_walker(T,controller)
     end
     
     %truncate these sequences down to the time span we want
-    y = y(t <= T,:)
-    t = t(t <= T)
-    tci = tci(tci <= length(t))
+    y = y(t <= T,:);
+    t = t(t <= T);
+    tci = tci(tci <= length(t));
+    
+    if plot
 
-    % Graph collision map
-    figure(1)
-    plot(t,y(:,3)-2*y(:,1))
-    grid on
-    xlabel('time ( sqrt(l/g) )')
-    ylabel('\phi(t)-2\theta(t) (rad.)')
+        % Graph collision map
+        figure(1)
+        plot(t,y(:,3)-2*y(:,1))
+        grid on
+        xlabel('time ( sqrt(l/g) )')
+        ylabel('\phi(t)-2\theta(t) (rad.)')
 
-    % Graph angular positions - the stride function
-    figure(2)
-    hold on
-    plot(t,y(:,1),'r',t,y(:,3),'b--')
-    grid on
-    title('Stride Function')
-    xlabel('time ( sqrt(l/g) )')
-    ylabel('\phi(t), \theta(t) (rad.)')
+        % Graph angular positions - the stride function
+        figure(2)
+        hold on
+        plot(t,y(:,1),'r',t,y(:,3),'b--')
+        grid on
+        title('Stride Function')
+        xlabel('time ( sqrt(l/g) )')
+        ylabel('\phi(t), \theta(t) (rad.)')
 
-    % Graph angular velocities
-    figure(3)
-    hold on
-    plot(t,y(:,2),'r',t,y(:,4),'b--')
-    grid on
-    title('Angular Velocities')
-    xlabel('time ( sqrt(l/g) )')
-    ylabel('\phi^.(t), \theta^.(t) (rad./sqrt(l/g))')
+        % Graph angular velocities
+        figure(3)
+        hold on
+        plot(t,y(:,2),'r',t,y(:,4),'b--')
+        grid on
+        title('Angular Velocities')
+        xlabel('time ( sqrt(l/g) )')
+        ylabel('\phi^.(t), \theta^.(t) (rad./sqrt(l/g))')
 
-    % Phase plot of phi versus theta
-    figure(4)
-    plot(y(:,1),y(:,3))
-    grid on
-    title('Phase Portrait')
-    xlabel('\theta(t) (rad.)')
-    ylabel('\phi(t) (rad.)')
+        % Phase plot of phi versus theta
+        figure(4)
+        plot(y(:,1),y(:,3))
+        grid on
+        title('Phase Portrait')
+        xlabel('\theta(t) (rad.)')
+        ylabel('\phi(t) (rad.)')
 
-    % Plot Hamiltonian
-    H = 0.5*y(:,2).*y(:,2)+cos(y(:,1)-gam);
-    figure(5)
-    plot(t,H-H(1))
-    grid on
-    title('Hamiltonian - Total Energy of System')
-    xlabel('time ( sqrt(l/g) )')
-    ylabel('Hamiltonian: H(t)-H(0)')
+        % Plot Hamiltonian
+        H = 0.5*y(:,2).*y(:,2)+cos(y(:,1)-gam);
+        figure(5)
+        plot(t,H-H(1))
+        grid on
+        title('Hamiltonian - Total Energy of System')
+        xlabel('time ( sqrt(l/g) )')
+        ylabel('Hamiltonian: H(t)-H(0)')
+    end
 
     % Run model animation: mview.m
     % y records the states
     % gam is angle of slope
     % tci is Collision index vector
 
-    [total_step, total_dist] = wmview(y,gam,tci)
+    if plot
+        [total_step, total_dist] = wmview(y,gam,tci);
+    else
+        [total_step, total_dist] = wmview_no_plotting(y,gam,tci);
+    end
     
 end
 
@@ -170,7 +177,7 @@ function ydot=f(t,y,F)
 % y4: phidot
 % F = forcing
 
-gam = 0 %hardcoding this in for now
+gam = 0; %hardcoding this in for now
 
 % First order differential equations for Simplest Walking Model
 ydot = [y(2);

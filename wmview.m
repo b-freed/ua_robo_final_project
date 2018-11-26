@@ -143,7 +143,6 @@ for j=1:length(tci)-1  % tci is the collision index vector
         break;
     else
         total_step = total_step + 1;
-        hip_position_x
         total_dist = total_dist + hip_position_x;
     end
     
