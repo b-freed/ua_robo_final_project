@@ -41,10 +41,8 @@ function total_dist = simulate_walker(T,controller,ifplot)
 
     % Spring constant of spring-like torque at hip
     %k = -0.08;
-%     k = 0
-    % Integration time parameters
-  
-
+    
+    % Integration time parameter
     per = 5;        % Max number of seconds allowed per step
 
     % Initial desired step length
@@ -53,7 +51,6 @@ function total_dist = simulate_walker(T,controller,ifplot)
     % IC constants
     alpha = asin(0.5*s);
     
-    disp(controller)
     % ==================================
     % Stochasitcity NO.1 - system disturbance
     % ==================================
@@ -92,12 +89,39 @@ function total_dist = simulate_walker(T,controller,ifplot)
     tci = 0;        % Collision index vector
     h = [0 per];	% Integration period in seconds
 
-    % Set integration tolerances, turn on collision detection, add more output points
-    opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',@collision);
+
 
     % Loop to perform integration of a noncontinuous function
     tf = 0;
+    
     while tf <= T
+        % ==================================
+        % Stochasitcity NO.2 - bumpy terrain
+        % ==================================
+        
+        okay_to_send = false;
+        
+        while okay_to_send == false
+            mu = 0;
+            sigma = 1;
+            height = 1/sqrt(2*pi*sigma^2);
+            scaling_factor = 0.001;
+            epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize guassian
+            epsilon = abs(epsilon)
+            
+            if abs(epsilon) <= 0.01 * 1
+                okay_to_send = true;
+            end
+        end
+        
+        % ==================================
+        % ==================================
+        
+        colli = @(t,y) collision(t,y,epsilon);
+   
+        % Set integration tolerances, turn on collision detection, add more output points
+        opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',colli);
+    
        [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y)),h,y0,opts); % Integrate for one stride
        y = [y;yout];                                         	%#ok<AGROW> % Append states to state vector
        t = [t;tout];                                            %#ok<AGROW> % Append times to time vector
@@ -188,6 +212,19 @@ function ydot=f(t,y,F)
 % y4: phidot
 % F = forcing
 
+
+y3 = evalin('base', 'y3_store');
+y4 = evalin('base', 'y4_store');
+
+index_y3 = length(y3);
+index_y4 = length(y4);
+
+y3(index_y3+1) = y(3);
+y4(index_y4+1) = y(4);
+
+assignin('base','y3_store',y3);
+assignin('base','y4_store',y4);
+
 gam = 0; %hardcoding this in for now
 
 % First order differential equations for Simplest Walking Model
@@ -199,23 +236,12 @@ ydot = [y(2);
 end
 
 
-function [val,ist,dir]=collision(t,y) %#ok<INUSL>
+function [val,ist,dir]=collision(t,y, epsilon) %#ok<INUSL>
 % Check for heelstrike collision using zero-crossing detection
 
-% ==================================
-% Stochasitcity NO.2 - bumpy terrain
-% ==================================
-mu = 0;
-sigma = 1;
-height = 1/sqrt(2*pi*sigma^2);
-scaling_factor = 0.01;
-epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize guassian
+val = y(3)-2*y(1) + abs(epsilon);  % Geometric collision condition, when = 0
 
-val = y(3)-2*y(1) + epsilon;  % Geometric collision condition, when = 0
-% val = y(3)-2*y(1);  % Geometric collision condition, when = 0
-
-% ==================================
-% ==================================
+disp(epsilon)
 
 ist = 1;			% Stop integrating if collision found
 dir = 1;			% Condition only true when passing from - to +

@@ -1,6 +1,3 @@
-clear all
-close all
-clc
 
 %% Environemnt 
 % just testing the walking robot for a fixed amount of time with the
@@ -9,17 +6,8 @@ clc
 gam = 0;
 a = 0;
 tau = 3.84;
-kp = -0.08;
-kd = -sqrt(abs(kp/100));
-k = [kp, kd];
+k = -0.08;
 T = 100;
-
-%% test
-
-y3_store = [];
-y4_store = [];
-
-%% 
 
 
 controller = @(t,y) original_controller(y,t,a,tau,k);
@@ -28,24 +16,11 @@ ifplot = true;
 
 total_dist = simulate_walker(T,controller,ifplot)
 
-%% test
-
-figure(27)
-hold on
-plot(1:length(y3_store), y3_store, 'b', 'linewidth', 1.2);
-plot(1:length(y4_store), y4_store, 'r', 'linewidth', 1.2);
-legend('y3', 'y4')
-hold off
-
-%% 
 
 function F = original_controller(y,t,a,tau,k)
-    F = a*sin(2*pi/tau*t)+ k(1)*y(3) + k(2)*y(4);
-%     F = a*sin(2*pi/tau*t)+ k(1)*y(3);
+    F = a*sin(2*pi/tau*t)+k*y(3);
 %     F = 0;
 end
-
-
 
 %% NN
 % 
