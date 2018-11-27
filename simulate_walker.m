@@ -1,4 +1,4 @@
-function total_dist = simulate_walker(T,max_steps,controller,plot)
+function total_dist = simulate_walker(T,max_steps,controller,disp_plot)
 
     %   Simulates an active walking robot from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -27,7 +27,7 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
     %   Andrew D. Horchler, horchler @ gmail . com, Created 7-7-04
     %   Revision: 1.1, 5-1-16
 
-    dt = .01;
+%     dt = .01;
     % Gamma: angle of slope (radians), used by integration function
     
     gam = 0;  % gam = 0  means it's walking on the flat ground
@@ -113,9 +113,9 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
     t = t(t <= T);
     tci = tci(tci <= length(t));
     
-    if plot
+    if disp_plot
 
-        % Graph collision map
+%         Graph collision map
         figure(1)
         plot(t,y(:,3)-2*y(:,1))
         grid on
@@ -163,7 +163,7 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
     % gam is angle of slope
     % tci is Collision index vector
 
-    if plot
+    if disp_plot
         [total_step, total_dist] = wmview(y,gam,tci);
     else
         [total_step, total_dist] = wmview_no_plotting(y,gam,tci);
