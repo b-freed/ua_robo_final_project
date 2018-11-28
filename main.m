@@ -9,20 +9,29 @@ clc
 gam = 0;
 a = 0;
 tau = 3.84;
-kp = -0.08;
-kd = -sqrt(abs(kp/100));
+
+% kp = -0.08;
+% kd = -sqrt(abs(kp/100));
+
+kp = 16;
+kd = sqrt(abs(kp));
+
 k = [kp, kd];
-T = 100;
+T = 20;
 
 %% test
 
 y3_store = [];
 y4_store = [];
+F_store = [];
+val_store = [];
 
 %% 
 
+s = 0.4;
+alpha = asin(0.5*s);
 
-controller = @(t,y) original_controller(y,t,a,tau,k);
+controller = @(t,y) original_controller(y,t,a,tau,k, alpha);
 
 ifplot = true;
 
@@ -30,19 +39,38 @@ total_dist = simulate_walker(T,controller,ifplot)
 
 %% test
 
-figure(27)
+% figure(27)
+% hold on
+% plot(1:length(y3_store), y3_store, 'b', 'linewidth', 1.2);
+% plot(1:length(y4_store), y4_store, 'r', 'linewidth', 1.2);
+% legend('y3', 'y4')
+% hold off
+
+% figure(28)
+% hold on
+% plot(1:length(F_store), F_store, 'b', 'linewidth', 1.2);
+% hold off
+
+%%
+% cla(h)
+h = figure(29)
 hold on
-plot(1:length(y3_store), y3_store, 'b', 'linewidth', 1.2);
-plot(1:length(y4_store), y4_store, 'r', 'linewidth', 1.2);
-legend('y3', 'y4')
+plot(1:length(val_store), val_store, 'b', 'linewidth', 1.2);
+% plot(1:length(val_store), val_store, 'ro', 'linewidth', 1.2);
 hold off
 
+% length(find(abs(val_store) <= 10E-5))
+% length(find(abs(val_store) ==0))
 %% 
 
-function F = original_controller(y,t,a,tau,k)
-    F = a*sin(2*pi/tau*t)+ k(1)*y(3) + k(2)*y(4);
-%     F = a*sin(2*pi/tau*t)+ k(1)*y(3);
-%     F = 0;
+function F = original_controller(y,t,a,tau,k, alpha)
+%     F = a*sin(2*pi/tau*t)+ k(1)*y(3) + k(2)*y(4);
+%     F = k(1)*y(3); 
+    F = 0;
+    
+    if y(1)< 0
+          F = k(1)*(-2*alpha - y(3)) + k(2)*(0 - y(4));
+    end
 end
 
 

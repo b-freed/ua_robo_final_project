@@ -276,7 +276,7 @@ else
         if val_detect < 0.1
             val = 1;
         else
-            flag = 'something'
+            flag = 'something';
             val = val_detect;
         end
         
@@ -285,6 +285,13 @@ else
     end
     
 end
+
+% val = y(3)-2*y(1);  % Geometric collision condition, when = 0
+
+% val = y(3)-2*y(1) + abs(epsilon);  % Geometric collision condition, when = 0
+        
+% epsilon
+
 
 ist = 1;			% Stop integrating if collision found
 dir = 1;			% Condition only true when passing from - to +
