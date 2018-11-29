@@ -26,7 +26,8 @@ function total_dist = simulate_walker(T,controller,ifplot)
 
     %   Andrew D. Horchler, horchler @ gmail . com, Created 7-7-04
     %   Revision: 1.1, 5-1-16
-
+    
+    global flag
 
     % Gamma: angle of slope (radians), used by integration function
     
@@ -99,6 +100,12 @@ function total_dist = simulate_walker(T,controller,ifplot)
     
     while tf <= T
         
+        % clean up the global variable flag
+        flag = [];
+        
+        % the following variable is just for checking
+        % if customized_counter
+        
         customized_counter = customized_counter + 1
         
         % ==================================
@@ -107,7 +114,7 @@ function total_dist = simulate_walker(T,controller,ifplot)
         
         okay_to_send = false;
         
-        if customized_counter > 1
+        if customized_counter >= 1
             while okay_to_send == false
                 mu = 0;
                 sigma = 1;
@@ -116,7 +123,7 @@ function total_dist = simulate_walker(T,controller,ifplot)
                 epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize guassian
     %             epsilon = abs(epsilon);
 
-                if abs(epsilon) <= 0.05 * 1
+                if abs(epsilon) <= 0.1 * 1
                     okay_to_send = true;
                 end
             end
@@ -125,7 +132,7 @@ function total_dist = simulate_walker(T,controller,ifplot)
         end
         
         % ==================================
-        % ==================================
+        % ==================================        
         
         colli = @(t,y) collision(t,y,epsilon);
    
@@ -276,7 +283,7 @@ else
         if val_detect < 0.1
             val = 1;
         else
-            flag = 'something'
+            flag = 777;
             val = val_detect;
         end
         

@@ -10,7 +10,7 @@ function [total_step, total_dist] = wmview(y,slope_angle,tci)
 
 
 % Leg length
-leg_length = 1.5;
+leg_length = 1;
 
 % Position of stance foot
 stance_foot_x = 0;
@@ -19,6 +19,8 @@ stance_foot_y = 0;
 % Position of hip
 hip_position_x = stance_foot_x - leg_length * sin(y(1,1) - slope_angle);
 hip_position_y = stance_foot_y + leg_length * cos(y(1,1) - slope_angle);
+
+
 
 % Position of swing foot
 swing_foot_position_x = hip_position_x - leg_length * sin(y(1,3) - y(1,1) + slope_angle);
@@ -67,6 +69,16 @@ total_dist = 0;
 
 % Animate each stride
 for j=1:length(tci)-1  % tci is the collision index vector
+    
+    % !!!! added features !!!!
+    if hip_position_y <= 0
+        disp('walking failed')
+        break;
+    else
+        total_step = total_step + 1;
+        total_dist = total_dist + hip_position_x;
+    end
+    
     
     % On collision switch stance and swing legs
     if j>1
@@ -137,14 +149,14 @@ for j=1:length(tci)-1  % tci is the collision index vector
     end
     
     
-    % !!!! added features !!!!
-    if hip_position_y <= 0
-        disp('walking failed')
-        break;
-    else
-        total_step = total_step + 1;
-        total_dist = total_dist + hip_position_x;
-    end
+%     % !!!! added features !!!!
+%     if hip_position_y <= 0
+%         disp('walking failed')
+%         break;
+%     else
+%         total_step = total_step + 1;
+%         total_dist = total_dist + hip_position_x;
+%     end
     
     
     
