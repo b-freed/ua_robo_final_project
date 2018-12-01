@@ -1,4 +1,4 @@
-function total_dist = simulate_walker(T,controller,ifplot)
+function [total_dist, total_step] = simulate_walker(T,controller,ifplot)
 
     %   Simulates an active walking robot from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -28,9 +28,20 @@ function total_dist = simulate_walker(T,controller,ifplot)
     %   Revision: 1.1, 5-1-16
     
     global flag
+    global event_counter 
+    global gam
+    global alpha
+    global first_step
+    global epsilon
+    
+    % first_step is to make sure the first step of the walker is not
+    % influence by terrain stachasticity
+    first_step = true;
+    
+    % event counter is to check the collision event
+    event_counter = 0;
 
     % Gamma: angle of slope (radians), used by integration function
-    
     gam = 0;  % gam = 0  means it's walking on the flat ground
     
 
@@ -95,8 +106,7 @@ function total_dist = simulate_walker(T,controller,ifplot)
     % Loop to perform integration of a noncontinuous function
     tf = 0;
     
-    
-    customized_counter = 0;
+   
     
     while tf <= T
         
@@ -106,30 +116,31 @@ function total_dist = simulate_walker(T,controller,ifplot)
         % the following variable is just for checking
         % if customized_counter
         
-        customized_counter = customized_counter + 1
-        
         % ==================================
         % Stochasitcity NO.2 - bumpy terrain
         % ==================================
+       
         
-        okay_to_send = false;
-        
-        if customized_counter >= 1
+        if first_step == false
+            okay_to_send = false;
             while okay_to_send == false
                 mu = 0;
                 sigma = 1;
-                height = 1/sqrt(2*pi*sigma^2);
-                scaling_factor = 0.1;
-                epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize guassian
-    %             epsilon = abs(epsilon);
-
-                if abs(epsilon) <= 0.1 * 1
+                epsilon = normrnd(mu, sigma);
+                
+                % send out the epsilon when it's smaller than 0.1 in
+                % magnitude
+                if abs(epsilon) <= 0.1
                     okay_to_send = true;
                 end
+                
             end
         else
+            first_step = false;
             epsilon = 0;
         end
+        
+        fprintf('epsilon: %f \n', epsilon);
         
         % ==================================
         % ==================================        
@@ -139,6 +150,8 @@ function total_dist = simulate_walker(T,controller,ifplot)
         % Set integration tolerances, turn on collision detection, add more output points
         opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',colli);
     
+        event_counter = event_counter+1;
+        
        [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y)),h,y0,opts); % Integrate for one stride
        y = [y;yout];                                         	%#ok<AGROW> % Append states to state vector
        t = [t;tout];                                            %#ok<AGROW> % Append times to time vector
@@ -222,7 +235,6 @@ function total_dist = simulate_walker(T,controller,ifplot)
 end
 
 
-
 function ydot=f(t,y,F)
 %ODE definition
 % y1: theta
@@ -232,18 +244,6 @@ function ydot=f(t,y,F)
 % F = forcing
 
 
-y3 = evalin('base', 'y3_store');
-y4 = evalin('base', 'y4_store');
-
-index_y3 = length(y3);
-index_y4 = length(y4);
-
-y3(index_y3+1) = y(3);
-y4(index_y4+1) = y(4);
-
-assignin('base','y3_store',y3);
-assignin('base','y4_store',y4);
-
 gam = 0; %hardcoding this in for now
 
 % First order differential equations for Simplest Walking Model
@@ -251,16 +251,7 @@ ydot = [y(2);
         sin(y(1)-gam);
         y(4);
         sin(y(1)-gam)+sin(y(3))*(y(2)*y(2)-cos(y(1)-gam))+F];
-    
-        % Here it output the effort of the chosen controller
-        % ------------------------------------------
-        F_store = evalin('base', 'F_store');
 
-        index = length(F_store);
-        F_store(index+1) = F;
-
-        assignin('base','F_store',F_store);
-        % ------------------------------------------
    
 end
 
@@ -268,38 +259,65 @@ end
 function [val,ist,dir]=collision(t,y, epsilon) %#ok<INUSL>
 
 global flag
+global event_counter 
+global gam
+global alpha
+global first_step
 
-% Check for heelstrike collision using zero-crossing detection
+%% swing angle guard equation
+% 
+% % Check for heelstrike collision using zero-crossing detection
+% 
+% % if epsilon is a postive value
+% if epsilon >= 0 
+%     val = y(3)-2*y(1) + epsilon;  % Geometric collision condition, when = 0   
+% else
+%     
+%     val_detect = y(3)-2*y(1) + epsilon;
+%     
+%     if isempty(flag) == true
+%         
+%         if val_detect < 0.1
+%             val = 1;
+%         else
+%             flag = 777;
+%             val = val_detect;
+%         end
+%         
+%     else
+%         val = val_detect;
+%     end
+%     
+% end
+% 
+% ist = 1;			% Stop integrating if collision found
+% dir = 1;			% Condition only true when passing from - to +
 
-% if epsilon is a postive value
-if epsilon >= 0 
-    val = y(3)-2*y(1) + epsilon;  % Geometric collision condition, when = 0   
-else
-    
-    val_detect = y(3)-2*y(1) + epsilon;
-    
-    if isempty(flag) == true
-        
-        if val_detect < 0.1
-            val = 1;
-        else
-            flag = 777;
-            val = val_detect;
-        end
-        
+%% Distance Guard Equation
+
+stance_foot_x = 0;
+stance_foot_y = 0;
+hip_position_x = stance_foot_x - 1 * sin(y(1) - gam);          	% Position of hip
+hip_position_y = stance_foot_y + 1 * cos(y(1) - gam);
+swing_foot_position_x = hip_position_x - 1 * sin(y(3) - y(1) + gam);    	% Position of swing leg
+swing_foot_position_y = hip_position_y - 1 * cos(y(3) - y(1) + gam);
+
+
+swing_foot_position_y = swing_foot_position_y + epsilon;
+val_detect = swing_foot_position_y - swing_foot_position_x * tan(gam);
+
+
+if abs(val_detect)<0.1
+    if abs(y(3))<alpha        % Mannually filter out the zero appearing at vertical position
+        val = 777;
     else
         val = val_detect;
     end
-    
+else
+    val = val_detect;
 end
 
 ist = 1;			% Stop integrating if collision found
-dir = 1;			% Condition only true when passing from - to +
-
+dir = -1;			% Condition only true when passing from + to -
 
 end
-
-% function guard_equation(t,y,epsilon)
-% 
-% 
-% end

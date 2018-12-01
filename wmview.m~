@@ -12,7 +12,7 @@ function [total_step, total_dist] = wmview(y,slope_angle,tci)
 total_step = 0;
 
 % Leg length
-leg_length = 1.5;
+leg_length = 1;
 
 % Position of stance foot
 stance_foot_x = 0;
@@ -30,11 +30,7 @@ swing_foot_position_y = hip_position_y - leg_length * cos(y(1,3) - y(1,1) + slop
 
 % Initialize figure for animation
 figure('Color','w','Renderer','zbuffer')
-
-% define how long the horizon will extend
-horizon = 20;
-
-axis([swing_foot_position_x, horizon, -1, 1.5*leg_length])
+axis([swing_foot_position_x, 10.55, -1, 1.5*leg_length])
 axis off
 strobePlot = 0;   % Draw stroboscopic plot: 1
 tracePlot = 0;    % Trace path of hip and swing foot: 1 or 2
@@ -42,7 +38,7 @@ tracePlot = 0;    % Trace path of hip and swing foot: 1 or 2
 % Draw first position
 % -----------------------
 % slope
-slope = line([swing_foot_position_x, horizon],[swing_foot_position_y, (swing_foot_position_x - horizon)*tan(slope_angle)]);
+slope = line([swing_foot_position_x 10.25],[swing_foot_position_y (swing_foot_position_x-10.25)*tan(slope_angle)]);
 set(slope,'Color','k','LineWidth',0.1);
 
 % stance leg
@@ -66,6 +62,7 @@ flipStride = 1;     % Flag for swing-stance flip
 % record the old swing foot positions
 xsw_old = swing_foot_position_x;
 ysw_old = swing_foot_position_y;
+
 
 
 % Animate each stride

@@ -17,7 +17,7 @@ kp = 16;
 kd = sqrt(abs(kp));
 
 k = [kp, kd];
-T = 20;
+T = 50;
 
 %% test
 
@@ -35,7 +35,7 @@ controller = @(t,y) original_controller(y,t,a,tau,k, alpha);
 
 ifplot = true;
 
-total_dist = simulate_walker(T,controller,ifplot)
+[total_dist, total_step] = simulate_walker(T,controller,ifplot)
 
 %% test
 
@@ -53,11 +53,11 @@ total_dist = simulate_walker(T,controller,ifplot)
 
 %%
 % cla(h)
-h = figure(29)
-hold on
-plot(1:length(val_store), val_store, 'b', 'linewidth', 1.2);
-% plot(1:length(val_store), val_store, 'ro', 'linewidth', 1.2);
-hold off
+% h = figure(29)
+% hold on
+% plot(1:length(val_store), val_store, 'b', 'linewidth', 1.2);
+% % plot(1:length(val_store), val_store, 'ro', 'linewidth', 1.2);
+% hold off
 
 % length(find(abs(val_store) <= 10E-5))
 % length(find(abs(val_store) ==0))
