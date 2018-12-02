@@ -27,7 +27,6 @@ function [total_dist, total_step] = simulate_walker(T,controller,ifplot)
     %   Andrew D. Horchler, horchler @ gmail . com, Created 7-7-04
     %   Revision: 1.1, 5-1-16
     
-    global flag
     global event_counter 
     global gam
     global alpha
@@ -38,7 +37,7 @@ function [total_dist, total_step] = simulate_walker(T,controller,ifplot)
     % influence by terrain stachasticity
     first_step = true;
     
-    % event counter is to check the collision event
+    % event counter is to check the number of collision event
     event_counter = 0;
 
     % Gamma: angle of slope (radians), used by integration function
@@ -63,20 +62,6 @@ function [total_dist, total_step] = simulate_walker(T,controller,ifplot)
     % IC constants
     alpha = asin(0.5*s);
     
-    % ==================================
-    % Stochasitcity NO.1 - system disturbance
-    % ==================================
-%     mu = 0;
-%     sigma = 1;
-%     height = 1/sqrt(2*pi*sigma^2);
-%     scaling_factor = 0.1;
-%     epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize guassian
-%     
-%     for i = 1:length(controller)  % controller will be either row or col vector
-%         controller(i) = controller(i) + epsilon;
-%     end
-    % ==================================
-    % ==================================
 
     % Toe-off impulse applied at heelstrike condition
     if a == 0
@@ -101,23 +86,15 @@ function [total_dist, total_step] = simulate_walker(T,controller,ifplot)
     tci = 0;        % Collision index vector
     h = [0 per];	% Integration period in seconds
 
-
-
     % Loop to perform integration of a noncontinuous function
     tf = 0;
     
-   
-    
+    % let the walker walk unless the time is up
     while tf <= T
-        
-        % clean up the global variable flag
-        flag = [];
-        
-        % the following variable is just for checking
-        % if customized_counter
+       
         
         % ==================================
-        % Stochasitcity NO.2 - bumpy terrain
+        % Stochasitcity - bumpy terrain
         % ==================================
        
         
@@ -130,7 +107,7 @@ function [total_dist, total_step] = simulate_walker(T,controller,ifplot)
                 
                 % send out the epsilon when it's smaller than 0.1 in
                 % magnitude
-                if abs(epsilon) <= 0.02
+                if abs(epsilon) <= 0.025
                     okay_to_send = true;
                 end
                 
@@ -150,6 +127,10 @@ function [total_dist, total_step] = simulate_walker(T,controller,ifplot)
         % Set integration tolerances, turn on collision detection, add more output points
         opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',colli);
     
+        % event_counter is to check if the number of collision event is
+        % equal to the number of steps taken by the walker
+        % If those numbers don't match, that means the walker has collide
+        % with the ground multiple times before talking an meaningful step
         event_counter = event_counter+1;
         
        [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y)),h,y0,opts); % Integrate for one stride
@@ -241,7 +222,7 @@ function ydot=f(t,y,F)
 % y2: thetadot
 % y3: phi
 % y4: phidot
-% F = forcing
+% F = forcing/control effort
 
 
 gam = 0; %hardcoding this in for now
@@ -252,7 +233,6 @@ ydot = [y(2);
         y(4);
         sin(y(1)-gam)+sin(y(3))*(y(2)*y(2)-cos(y(1)-gam))+F];
 
-   
 end
 
 
@@ -263,35 +243,6 @@ global event_counter
 global gam
 global alpha
 global first_step
-
-%% swing angle guard equation
-% 
-% % Check for heelstrike collision using zero-crossing detection
-% 
-% % if epsilon is a postive value
-% if epsilon >= 0 
-%     val = y(3)-2*y(1) + epsilon;  % Geometric collision condition, when = 0   
-% else
-%     
-%     val_detect = y(3)-2*y(1) + epsilon;
-%     
-%     if isempty(flag) == true
-%         
-%         if val_detect < 0.1
-%             val = 1;
-%         else
-%             flag = 777;
-%             val = val_detect;
-%         end
-%         
-%     else
-%         val = val_detect;
-%     end
-%     
-% end
-% 
-% ist = 1;			% Stop integrating if collision found
-% dir = 1;			% Condition only true when passing from - to +
 
 %% Distance Guard Equation
 
@@ -307,9 +258,9 @@ swing_foot_position_y = swing_foot_position_y + epsilon;
 val_detect = swing_foot_position_y - swing_foot_position_x * tan(gam);
 
 
-if abs(val_detect)<0.1
-    if abs(y(3))<alpha        % Mannually filter out the zero appearing at vertical position
-        val = 777;
+if abs(val_detect)< 0.05
+    if abs(y(3)) < 1.5*alpha        % Mannually filter out the zero appearing at vertical position
+        val = 777; % just give val a positive value, no matter what it is
     else
         val = val_detect;
     end

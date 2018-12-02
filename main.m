@@ -1,5 +1,6 @@
 clear all
 close all
+format short
 clc
 
 %% Environemnt 
@@ -35,7 +36,8 @@ controller = @(t,y) original_controller(y,t,a,tau,k, alpha);
 
 ifplot = true;
 
-[total_dist, total_step] = simulate_walker(T,controller,ifplot)
+% [total_dist, total_step] = simulate_walker(T,controller,ifplot)
+[total_dist, total_step] = simulate_walker_terrain_stoc(T,controller,ifplot)
 
 %% test
 
