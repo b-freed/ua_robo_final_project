@@ -1,4 +1,5 @@
-function [total_step, total_dist] = wmview(y,slope_angle,tci)
+function [total_step, total_dist] = wmview(y,slope_angle,tci,ifplot)
+
 %WMVIEW  Animate passive dynamic walking data
 %   WMVIEW(Y, GAM, TCI) animates the passive dynamic data in Y for slope angle
 %   GAM and collision indices TCI.
@@ -24,34 +25,39 @@ hip_position_y = stance_foot_y + leg_length * cos(y(1,1) - slope_angle);
 swing_foot_position_x = hip_position_x - leg_length * sin(y(1,3) - y(1,1) + slope_angle);
 swing_foot_position_y = hip_position_y - leg_length * cos(y(1,3) - y(1,1) + slope_angle);
 
-% Initialize figure for animation
-figure('Color','w','Renderer','zbuffer')
-axis([swing_foot_position_x 10.55 -1 1.5*leg_length])
-axis off
 strobePlot = 0;   % Draw stroboscopic plot: 1
-tracePlot = 0;    % Trace path of hip and swing foot: 1 or 2
+tracePlot = 1;    % Trace path of hip and swing foot: 1 or 2
 
-% Draw first position
-% -----------------------
-% slope
-slope = line([swing_foot_position_x 10.25],[swing_foot_position_y (swing_foot_position_x-10.25)*tan(slope_angle)]);
-set(slope,'Color','k','LineWidth',0.1);
+if ifplot
+    % Initialize figure for animation
+    figure('Color','w','Renderer','zbuffer')
+    axis([swing_foot_position_x 10.55 -1 1.5*leg_length])
+    axis off
+    
 
-% stance leg
-stance_leg = line([stance_foot_x hip_position_x],[stance_foot_y hip_position_y]);
-set(stance_leg,'Color','k','LineStyle','-');
+    % Draw first position
+    % -----------------------
+    % slope
+    slope = line([swing_foot_position_x 10.25],[swing_foot_position_y (swing_foot_position_x-10.25)*tan(slope_angle)]);
+    set(slope,'Color','k','LineWidth',0.1);
 
-% swing leg
-swing_leg = line([swing_foot_position_x hip_position_x],[swing_foot_position_y hip_position_y]);
-set(swing_leg,'Color','b','LineWidth',2);
+    % stance leg
+    stance_leg = line([stance_foot_x hip_position_x],[stance_foot_y hip_position_y]);
+    set(stance_leg,'Color','k','LineStyle','-');
 
-if tracePlot==1
-    % Plot position of hip and swing foot
-    line([hip_position_x swing_foot_position_x],[hip_position_y swing_foot_position_y],...
-         'Color','k','LineStyle','none','Marker','.','MarkerSize',1);
+    % swing leg
+    swing_leg = line([swing_foot_position_x hip_position_x],[swing_foot_position_y hip_position_y]);
+    set(swing_leg,'Color','b','LineWidth',2);
+
+
+    if tracePlot==1
+        % Plot position of hip and swing foot
+        line([hip_position_x swing_foot_position_x],[hip_position_y swing_foot_position_y],...
+             'Color','k','LineStyle','none','Marker','.','MarkerSize',1);
+    end
+
+    drawnow             % Force Matlab to draw
 end
-
-drawnow             % Force Matlab to draw
 
 flipStride = 1;     % Flag for swing-stance flip
 
@@ -75,7 +81,7 @@ for j=1:length(tci)-1  % tci is the collision index vector
         
         flipStride = -flipStride;
         
-        if strobePlot==1
+        if strobePlot==1 && ifplot
             set([stance_leg swing_leg],'Visible','off');
         end
         
@@ -83,24 +89,49 @@ for j=1:length(tci)-1  % tci is the collision index vector
     
     t1 = tci(j)+1;
     t2 = tci(j+1);
+    total_step = total_step + 1;
+    
     for i=t1:t2
-        if mod(i,20)==0 || i==t1 || i==t2           % When to draw
-            xm_old = hip_position_x;
-            ym_old = hip_position_y;
-            hip_position_x = stance_foot_x-leg_length*sin(y(i,1)-slope_angle);          	% Position of hip
-            hip_position_y = stance_foot_y+leg_length*cos(y(i,1)-slope_angle);
+        xm_old = hip_position_x;
+        ym_old = hip_position_y;
+        hip_position_x = stance_foot_x-leg_length*sin(y(i,1)-slope_angle);          	% Position of hip
+        hip_position_y = stance_foot_y+leg_length*cos(y(i,1)-slope_angle);
+        total_dist = hip_position_x;
+       
+%         hip_x_store = evalin('base', 'hip_x_store');
+%         hip_y_store = evalin('base', 'hip_y_store');
+%         hip_index = evalin('base', 'hip_index');
+% 
+%         hip_index = hip_index + 1;
+%         hip_x_store(hip_index) = hip_position_x;
+%         hip_y_store(hip_index) = hip_position_y;
+% 
+%         assignin('base', 'hip_x_store', hip_x_store);
+%         assignin('base', 'hip_y_store', hip_y_store);
+%         assignin('base', 'hip_index', hip_index);
+        
+%         if mod(i,20)==0 || i==t1 || i==t2
+        if flipStride==1 && i>t1
+                xsw_old = swing_foot_position_x;
+                ysw_old = swing_foot_position_y;
+        end
+%         end
             
+        swing_foot_position_x = hip_position_x - leg_length * sin(y(i,3) - y(i,1)+slope_angle);    	% Position of swing leg
+        swing_foot_position_y = hip_position_y - leg_length * cos(y(i,3) - y(i,1)+slope_angle);
+        
+        if hip_position_y <= 0
+            %walking has failed, return out of function
+            return;
+        end
+        
+        if (mod(i,20)==0 || i==t1 || i==t2) && ifplot           % When to draw
+       
             if tracePlot>1
                 line([xm_old hip_position_x],[ym_old hip_position_y],'Color',[0.5 0.5 0.5]);
             end
             
-            if flipStride==1 && i>t1
-                xsw_old = swing_foot_position_x;
-                ysw_old = swing_foot_position_y;
-            end
             
-            swing_foot_position_x = hip_position_x - leg_length * sin(y(i,3) - y(i,1)+slope_angle);    	% Position of swing leg
-            swing_foot_position_y = hip_position_y - leg_length * cos(y(i,3) - y(i,1)+slope_angle);
            
             if flipStride==1 && tracePlot==2
                 % Trace path of blue leg
@@ -138,13 +169,10 @@ for j=1:length(tci)-1  % tci is the collision index vector
     
     
     % !!!! added features !!!!
-    if hip_position_y <= 0
-%         disp('walking failed')
-        break;
-    else
-        total_step = total_step + 1;
-        total_dist = total_dist + hip_position_x;
-    end
+    
+   
+    
+
     
     
     

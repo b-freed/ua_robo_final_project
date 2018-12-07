@@ -1,4 +1,4 @@
-function total_dist = simulate_walker(T,max_steps,controller,ifplot)
+function total_dist = simulate_walker_stoch_F(T,controller,ifplot)
 
     %   Simulates an active walking robot on stochastic terrain from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -31,7 +31,7 @@ function total_dist = simulate_walker(T,max_steps,controller,ifplot)
 
     % Gamma: angle of slope (radians), used by integration function
     
-    gam = 0;  % gam = 0  means it's walking on the flat ground
+    gam = 0;
     
 
     
@@ -48,8 +48,10 @@ function total_dist = simulate_walker(T,max_steps,controller,ifplot)
     
     omega = -1.04*alpha;
     P = -omega*tan(alpha);
+
     
 
+    
     % Calculate stable ICs from theoretically determined equations
     y0 = [alpha;
           omega;
@@ -72,29 +74,40 @@ function total_dist = simulate_walker(T,max_steps,controller,ifplot)
     
     step = 0;
     
-    while tf <= T %&& step <= max_steps
+  % Set integration tolerances, turn on collision detection, add more output points
+    opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',@collision);
+    while tf <= T 
         
         % clean up the global variable flag
         flag = [];
         
-        %sample ground height
-        max_ep = .01;  
+        %noise
         mu = 0;
-        sigma = .04;
+        sigma = .02;
         
 %         epsilon = samp_trunc_gauss(mu,sigma,max_ep) %gaussian truncated
 %         to range [-max_ep, max_ep]
-        epsilon = max_ep*(rand() - .5); %uniform over range (-max_ep, max_ep)
-%         epsilon = 0;
-        colli = @(t,y) collision(t,y,epsilon);
+%         gam = max_gam*(rand() - .5); %uniform over range (-max_ep, max_ep)
+        
+        w = normrnd(mu,sigma);
    
-        % Set integration tolerances, turn on collision detection, add more output points
-        opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',colli);
-    
-       [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y)),h,y0,opts); % Integrate for one stride
+%        w = 0;
+       
+       [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y),gam,w),h,y0,opts); % Integrate for one stride
        y = [y;yout];                                      % Append states to state vector
        t = [t;tout];                                      % Append times to time vector
        tf = t(end);
+       %kill the simulation if theta goes above pi/2 or below -pi/2, this
+       %corresponds to the walker being DEAD (horizontal)
+       %%%%%%%%%%%%%%%%
+       if any(yout(:,1) >= pi/2) ||  any(yout(:,1) <= -pi/2)
+%            disp('!!!!!!!!!!!!!!! FAIL FAIL FAIL !!!!!!!!!!!!!!!!')
+           fail_ind = find((y(:,1) >= pi/2) | (y(:,1) <= -pi/2),1);  %find first time theta goes outside range [-pi/2,pi/2]
+           y = y(1:fail_ind,:);
+           t = t(1:fail_ind);
+           break
+       end
+       %%%%%%%%%%%%%%
        c2y1 = cos(2*y(end,1));                               	% Calculate once for new ICs
        s2y1p = sin(2*y(end,1))*P;                               % Calculate once for new ICs
        
@@ -113,6 +126,7 @@ function total_dist = simulate_walker(T,max_steps,controller,ifplot)
     %truncate these sequences down to the time span we want
     y = y(t <= T,:);
     t = t(t <= T);
+    
     tci = tci(tci <= length(t));
     
     if ifplot
@@ -159,97 +173,42 @@ function total_dist = simulate_walker(T,max_steps,controller,ifplot)
         xlabel('time ( sqrt(l/g) )')
         ylabel('Hamiltonian: H(t)-H(0)')
     end
-    
-    
 
-    % Run model animation: mview.m
-    % y records the states
-    % gam is angle of slope
-    % tci is Collision index vector
-
-    if ifplot
-        [total_step, total_dist] = wmview(y,gam,tci);
-    else
-        [total_step, total_dist] = wmview_no_plotting(y,gam,tci);
-    end
+ 
+    
+    [total_step, total_dist] = wmview(y,gam,tci,ifplot);
+    
     
 end
 
 
 
-function ydot=f(t,y,F)
+function ydot=f(t,y,F,gam,w)
 %ODE definition
 % y1: theta
 % y2: thetadot
 % y3: phi
 % y4: phidot
 % F = forcing
+% disp('F: '+string(F))
 
-
-% y3 = evalin('base', 'y3_store');
-% y4 = evalin('base', 'y4_store');
-% 
-% index_y3 = length(y3);
-% index_y4 = length(y4);
-% 
-% y3(index_y3+1) = y(3);
-% y4(index_y4+1) = y(4);
-% 
-% assignin('base','y3_store',y3);
-% assignin('base','y4_store',y4);
-
-gam = 0; %hardcoding this in for now
 
 % First order differential equations for Simplest Walking Model
 ydot = [y(2);
         sin(y(1)-gam);
         y(4);
-        sin(y(1)-gam)+sin(y(3))*(y(2)*y(2)-cos(y(1)-gam))+F];
+        sin(y(1)-gam)+sin(y(3))*(y(2)*y(2)-cos(y(1)-gam))+F+w];
     
-        % Here it output the effort of the chosen controller
-        % ------------------------------------------
-%         F_store = evalin('base', 'F_store');
-% 
-%         index = length(F_store);
-%         F_store(index+1) = F;
-% 
-%         assignin('base','F_store',F_store);
-        % ------------------------------------------
-   
+
 end
 
 
-function [val,ist,dir]=collision(t,y, epsilon) %#ok<INUSL>
-
-global flag
-
+function [val,ist,dir]=collision(t,y) %#ok<INUSL>
 % Check for heelstrike collision using zero-crossing detection
 
-% if epsilon is a postive value
-if epsilon >= 0 
-    val = y(3)-2*y(1) + epsilon;  % Geometric collision condition, when = 0   
-else
-    
-    val_detect = y(3)-2*y(1) + epsilon;
-    
-    if isempty(flag) == true
-        
-        if val_detect < 0.1
-            val = 1;
-        else
-            flag = 777;
-            val = val_detect;
-        end
-        
-    else
-        val = val_detect;
-    end
-    
-end
-
+val = y(3)-2*y(1);  % Geometric collision condition, when = 0
 ist = 1;			% Stop integrating if collision found
 dir = 1;			% Condition only true when passing from - to +
-
 
 end
 

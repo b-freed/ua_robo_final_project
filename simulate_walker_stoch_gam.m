@@ -1,4 +1,4 @@
-function total_dist = simulate_walker(T,max_steps,controller,ifplot)
+function total_dist = simulate_walker_stoch_gam(T,max_steps,controller,ifplot)
 
     %   Simulates an active walking robot on stochastic terrain from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -31,7 +31,7 @@ function total_dist = simulate_walker(T,max_steps,controller,ifplot)
 
     % Gamma: angle of slope (radians), used by integration function
     
-    gam = 0;  % gam = 0  means it's walking on the flat ground
+    
     
 
     
@@ -72,26 +72,26 @@ function total_dist = simulate_walker(T,max_steps,controller,ifplot)
     
     step = 0;
     
+  % Set integration tolerances, turn on collision detection, add more output points
+    opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',@collision);
     while tf <= T %&& step <= max_steps
         
         % clean up the global variable flag
         flag = [];
         
-        %sample ground height
-        max_ep = .01;  
+        %sample gamma
+        max_gam = .5;  
         mu = 0;
         sigma = .04;
         
 %         epsilon = samp_trunc_gauss(mu,sigma,max_ep) %gaussian truncated
 %         to range [-max_ep, max_ep]
-        epsilon = max_ep*(rand() - .5); %uniform over range (-max_ep, max_ep)
-%         epsilon = 0;
-        colli = @(t,y) collision(t,y,epsilon);
+        gam = max_gam*(rand() - .5); %uniform over range (-max_ep, max_ep)
+        
    
-        % Set integration tolerances, turn on collision detection, add more output points
-        opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',colli);
-    
-       [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y)),h,y0,opts); % Integrate for one stride
+      
+       
+       [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y,gam)),h,y0,opts); % Integrate for one stride
        y = [y;yout];                                      % Append states to state vector
        t = [t;tout];                                      % Append times to time vector
        tf = t(end);
@@ -159,8 +159,6 @@ function total_dist = simulate_walker(T,max_steps,controller,ifplot)
         xlabel('time ( sqrt(l/g) )')
         ylabel('Hamiltonian: H(t)-H(0)')
     end
-    
-    
 
     % Run model animation: mview.m
     % y records the states
@@ -177,7 +175,7 @@ end
 
 
 
-function ydot=f(t,y,F)
+function ydot=f(t,y,F,gam)
 %ODE definition
 % y1: theta
 % y2: thetadot
@@ -186,19 +184,6 @@ function ydot=f(t,y,F)
 % F = forcing
 
 
-% y3 = evalin('base', 'y3_store');
-% y4 = evalin('base', 'y4_store');
-% 
-% index_y3 = length(y3);
-% index_y4 = length(y4);
-% 
-% y3(index_y3+1) = y(3);
-% y4(index_y4+1) = y(4);
-% 
-% assignin('base','y3_store',y3);
-% assignin('base','y4_store',y4);
-
-gam = 0; %hardcoding this in for now
 
 % First order differential equations for Simplest Walking Model
 ydot = [y(2);
@@ -206,50 +191,16 @@ ydot = [y(2);
         y(4);
         sin(y(1)-gam)+sin(y(3))*(y(2)*y(2)-cos(y(1)-gam))+F];
     
-        % Here it output the effort of the chosen controller
-        % ------------------------------------------
-%         F_store = evalin('base', 'F_store');
-% 
-%         index = length(F_store);
-%         F_store(index+1) = F;
-% 
-%         assignin('base','F_store',F_store);
-        % ------------------------------------------
-   
+
 end
 
 
-function [val,ist,dir]=collision(t,y, epsilon) %#ok<INUSL>
-
-global flag
-
+function [val,ist,dir]=collision(t,y) %#ok<INUSL>
 % Check for heelstrike collision using zero-crossing detection
 
-% if epsilon is a postive value
-if epsilon >= 0 
-    val = y(3)-2*y(1) + epsilon;  % Geometric collision condition, when = 0   
-else
-    
-    val_detect = y(3)-2*y(1) + epsilon;
-    
-    if isempty(flag) == true
-        
-        if val_detect < 0.1
-            val = 1;
-        else
-            flag = 777;
-            val = val_detect;
-        end
-        
-    else
-        val = val_detect;
-    end
-    
-end
-
+val = y(3)-2*y(1);  % Geometric collision condition, when = 0
 ist = 1;			% Stop integrating if collision found
 dir = 1;			% Condition only true when passing from - to +
-
 
 end
 

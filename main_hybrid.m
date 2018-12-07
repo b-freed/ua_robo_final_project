@@ -30,11 +30,7 @@ sigma = 10^-1; %variance in perturbatins from params
 N = 100 %populatin size
 num_iters = 1000;  %number of updates we want to perform on params
 T = 50 %largest time we're willing to run the sim for
-% initial_alpha = 5*10^-7;  %initial learning rate.  Decays with iter
-% max_delta = .1;
-% decay = 0.01  %variable determining rate of decay of alpha (learning rate)
-%k = 0;
-
+weight = .1 %weight we assign to nn control 
 % ===============benchmark PD controller==============
 
 % this is usually around 67 for |epsilon| < .03 
@@ -52,20 +48,20 @@ tau = 3.84;
 pd_controller = @(t,y) original_controller(y,t,a,tau,k, alph);
 zero_controller = @(t,y) 0;
 
-benchmark_trials = 1000;
-pd_scores = zeros(1,benchmark_trials);
-zero_scores = zeros(1,benchmark_trials);
-parfor i = 1:benchmark_trials
-    [total_dist, total_step] = simulate_walker_terrain_stoc(T,pd_controller,false);
-    pd_scores(i) = total_dist;
-    [total_dist, total_step] = simulate_walker_terrain_stoc(T,zero_controller,false);
-    zero_scores(i) = total_dist;
-end
+% benchmark_trials = 1000;
+% pd_scores = zeros(1,benchmark_trials);
+% zero_scores = zeros(1,benchmark_trials);
+% parfor i = 1:benchmark_trials
+%     [total_dist, total_step] = simulate_walker_terrain_stoc(T,pd_controller,false);
+%     pd_scores(i) = total_dist;
+%     [total_dist, total_step] = simulate_walker_terrain_stoc(T,zero_controller,false);
+%     zero_scores(i) = total_dist;
+% end
 
-disp('mean pd scores:')
-disp(mean(pd_scores))
-disp('mean zero scores:')
-disp(mean(zero_scores))
+% disp('mean pd scores:')
+% disp(mean(pd_scores))
+% disp('mean zero scores:')
+% disp(mean(zero_scores))
 
 %% ====================================================
 
@@ -90,9 +86,11 @@ for iter = 1:num_iters
     test_params = params + sigma*perturbations;
     %score each individual in pop
     baseline_scores = zeros(1,N);
-    
+    [W1,b1,W2,b2] = params_to_weights(params,n_hidden);
+    hybrid_controller = @(t,y) pd_controller(t,y) + weight*nn_controller(y,W1,b1,W2,b2,activ1,activ2)
     parfor i = 1:N
-        baseline_scores(i) = score_params(params,n_hidden,activ1,activ2,T,false);
+    
+        baseline_scores(i) = simulate_walker_terrain_stoc(T,hybrid_controller,false);
 
     end
     baseline = mean(baseline_scores)
@@ -104,7 +102,9 @@ for iter = 1:num_iters
     drawnow
     scores = zeros(1,N);
     parfor i = 1:N
-        scores(i) = score_params(test_params(i,:),n_hidden,activ1,activ2,T,false);
+        [W1,b1,W2,b2] = params_to_weights(test_params(i,:),n_hidden);
+        hybrid_controller = @(t,y) pd_controller(t,y) + weight*nn_controller(y,W1,b1,W2,b2,activ1,activ2);
+        scores(i) = simulate_walker_terrain_stoc(T,hybrid_controller,false);
     end
     
     %below code block is purely for evaluation
@@ -167,7 +167,7 @@ function F = original_controller(y,t,a,tau,k, alpha)
 end
 
 function [params_tp1, m_tp1, v_tp1] = adam_update(grad, params_t, m_t, v_t, t)
-    alpha = 10^-3;
+    alpha = 10^-2;
     beta1 = .9;
     beta2 = .999;
     epsilon = 10^-8;
