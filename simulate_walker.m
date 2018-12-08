@@ -1,4 +1,4 @@
-function total_dist = simulate_walker(T,max_steps,controller,plot)
+function [total_dist, total_step] = simulate_walker(T,controller,ifplot)
 
     %   Simulates an active walking robot from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -26,10 +26,22 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
 
     %   Andrew D. Horchler, horchler @ gmail . com, Created 7-7-04
     %   Revision: 1.1, 5-1-16
-
-    dt = .01;
-    % Gamma: angle of slope (radians), used by integration function
     
+    global flag
+    global event_counter 
+    global gam
+    global alpha
+    global first_step
+    global epsilon
+    
+    % first_step is to make sure the first step of the walker is not
+    % influence by terrain stachasticity
+    first_step = true;
+    
+    % event counter is to check the collision event
+    event_counter = 0;
+
+    % Gamma: angle of slope (radians), used by integration function
     gam = 0;  % gam = 0  means it's walking on the flat ground
     
 
@@ -41,10 +53,8 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
 
     % Spring constant of spring-like torque at hip
     %k = -0.08;
-%     k = 0
-    % Integration time parameters
     
-
+    % Integration time parameter
     per = 5;        % Max number of seconds allowed per step
 
     % Initial desired step length
@@ -52,6 +62,21 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
 
     % IC constants
     alpha = asin(0.5*s);
+    
+    % ==================================
+    % Stochasitcity NO.1 - system disturbance
+    % ==================================
+%     mu = 0;
+%     sigma = 1;
+%     height = 1/sqrt(2*pi*sigma^2);
+%     scaling_factor = 0.1;
+%     epsilon  = scaling_factor * normrnd(mu,sigma) / height; % normalize guassian
+%     
+%     for i = 1:length(controller)  % controller will be either row or col vector
+%         controller(i) = controller(i) + epsilon;
+%     end
+    % ==================================
+    % ==================================
 
     % Toe-off impulse applied at heelstrike condition
     if a == 0
@@ -74,38 +99,76 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
     y = [];         % Vector to save states
     t = [];         % Vector to save times
     tci = 0;        % Collision index vector
-    
     h = [0 per];	% Integration period in seconds
 
-    % Set integration tolerances, turn on collision detection, add more output points
-    opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',@collision);
-%     opts = odeset('Events',@collision);
+
 
     % Loop to perform integration of a noncontinuous function
     tf = 0;
-    step = 0;
-    while tf <= T && step <= max_steps
+    
+   
+    
+    while tf <= T
+        
+        % clean up the global variable flag
+        flag = [];
+        
+        % the following variable is just for checking
+        % if customized_counter
+        
+        % ==================================
+        % Stochasitcity NO.2 - bumpy terrain
+        % ==================================
+       
+        
+        if first_step == false
+            okay_to_send = false;
+            while okay_to_send == false
+                mu = 0;
+                sigma = 1;
+                epsilon = normrnd(mu, sigma);
+                
+                % send out the epsilon when it's smaller than 0.1 in
+                % magnitude
+                if abs(epsilon) <= 0.02
+                    okay_to_send = true;
+                end
+                
+            end
+        else
+            first_step = false;
+            epsilon = 0;
+        end
+        
+        fprintf('epsilon: %f \n', epsilon);
+        
+        % ==================================
+        % ==================================        
+        
+        colli = @(t,y) collision(t,y,epsilon);
+   
+        % Set integration tolerances, turn on collision detection, add more output points
+        opts = odeset('RelTol',1e-4,'AbsTol',1e-8,'Refine',30,'Events',colli);
+    
+        event_counter = event_counter+1;
+        
        [tout,yout] = ode45(@(t,y) f(t,y,controller(t,y)),h,y0,opts); % Integrate for one stride
        y = [y;yout];                                         	%#ok<AGROW> % Append states to state vector
        t = [t;tout];                                            %#ok<AGROW> % Append times to time vector
        tf = t(end);
        c2y1 = cos(2*y(end,1));                               	% Calculate once for new ICs
        s2y1p = sin(2*y(end,1))*P;                               % Calculate once for new ICs
+       
        y0 = [-y(end,1);
              c2y1*y(end,2)+s2y1p;
              -2*y(end,1);
              c2y1*(1-c2y1)*y(end,2)+(1-c2y1)*s2y1p];            % Mapping to calculate new ICs after collision
+         
        tci = [tci length(t)];                                   %#ok<AGROW> % Append collision index to collision vector
        h = tf+[0 per];                                   	% New time step
        s = [s 2*sin(y0(1))];                                 	%#ok<AGROW> % Append last stride length to stride vector
-       step = step + 1;
        
        
-    
-    
-
-    
-
     end
     
     %truncate these sequences down to the time span we want
@@ -113,7 +176,7 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
     t = t(t <= T);
     tci = tci(tci <= length(t));
     
-    if plot
+    if ifplot
 
         % Graph collision map
         figure(1)
@@ -163,14 +226,13 @@ function total_dist = simulate_walker(T,max_steps,controller,plot)
     % gam is angle of slope
     % tci is Collision index vector
 
-    if plot
+    if ifplot
         [total_step, total_dist] = wmview(y,gam,tci);
     else
         [total_step, total_dist] = wmview_no_plotting(y,gam,tci);
     end
     
 end
-
 
 
 function ydot=f(t,y,F)
@@ -181,6 +243,7 @@ function ydot=f(t,y,F)
 % y4: phidot
 % F = forcing
 
+
 gam = 0; %hardcoding this in for now
 
 % First order differential equations for Simplest Walking Model
@@ -188,19 +251,73 @@ ydot = [y(2);
         sin(y(1)-gam);
         y(4);
         sin(y(1)-gam)+sin(y(3))*(y(2)*y(2)-cos(y(1)-gam))+F];
+
    
 end
 
 
+function [val,ist,dir]=collision(t,y, epsilon) %#ok<INUSL>
 
-    
+global flag
+global event_counter 
+global gam
+global alpha
+global first_step
+
+%% swing angle guard equation
+% 
+% % Check for heelstrike collision using zero-crossing detection
+% 
+% % if epsilon is a postive value
+% if epsilon >= 0 
+%     val = y(3)-2*y(1) + epsilon;  % Geometric collision condition, when = 0   
+% else
+%     
+%     val_detect = y(3)-2*y(1) + epsilon;
+%     
+%     if isempty(flag) == true
+%         
+%         if val_detect < 0.1
+%             val = 1;
+%         else
+%             flag = 777;
+%             val = val_detect;
+%         end
+%         
+%     else
+%         val = val_detect;
+%     end
+%     
+% end
+% 
+% ist = 1;			% Stop integrating if collision found
+% dir = 1;			% Condition only true when passing from - to +
+
+%% Distance Guard Equation
+
+stance_foot_x = 0;
+stance_foot_y = 0;
+hip_position_x = stance_foot_x - 1 * sin(y(1) - gam);          	% Position of hip
+hip_position_y = stance_foot_y + 1 * cos(y(1) - gam);
+swing_foot_position_x = hip_position_x - 1 * sin(y(3) - y(1) + gam);    	% Position of swing leg
+swing_foot_position_y = hip_position_y - 1 * cos(y(3) - y(1) + gam);
 
 
-function [val,ist,dir]=collision(t,y) %#ok<INUSL>
-% Check for heelstrike collision using zero-crossing detection
+swing_foot_position_y = swing_foot_position_y + epsilon;
+val_detect = swing_foot_position_y - swing_foot_position_x * tan(gam);
 
-val = y(3)-2*y(1);  % Geometric collision condition, when = 0
+
+if abs(val_detect)<0.1
+    if abs(y(3))<alpha        % Mannually filter out the zero appearing at vertical position
+        val = 777;
+    else
+        val = val_detect;
+    end
+else
+    val = val_detect;
+end
+
 ist = 1;			% Stop integrating if collision found
-dir = 1;			% Condition only true when passing from - to +
+dir = -1;			% Condition only true when passing from + to -
 
 end

@@ -8,8 +8,7 @@ function F = nn_controller(y,W1,b1,W2,b2,activ1,activ2)
     a2 = W2*z1 + b2;
     F = activ2(a2);
 
-    
-
+   
 
 end
 
