@@ -37,7 +37,7 @@ weight = .1 %weight we assign to nn control
 
 kp = 16;
 % kd = sqrt(abs(kp));
-kd = 0;
+kd = 4;
 k = [kp, kd];
 
 s = 0.4;
@@ -98,7 +98,7 @@ for iter = 1:num_iters
     figure(1)
     plot(baselines(1:iter))
     title('1')
-    ylim([min([0,baselines]),max(baselines)+10])
+%     ylim([min([0,baselines]),max(baselines)+10])
     drawnow
     scores = zeros(1,N);
     parfor i = 1:N
@@ -128,7 +128,8 @@ for iter = 1:num_iters
     disp(iter)
     %calculate update to parameters
     grad = (1/(N*sigma))*sum((scores)'.*perturbations,1);
-    [params, m, v] = adam_update(grad, params, m, v, iter);
+%     [params, m, v] = adam_update(grad, params, m, v, iter);
+    params = gd_update(grad, params, iter);
     
 %     delta = cap(delta, max_delta);
 %     disp('norm delta: ')
@@ -166,8 +167,16 @@ function F = original_controller(y,t,a,tau,k, alpha)
     end
 end
 
+function params_new = gd_update(grad, params, epoch)
+
+    lr0 = 2*10^-3;
+    lr = lr0 * exp(-k*(epoch - 1))
+    
+    params_new = params + lr*grad
+end
+
 function [params_tp1, m_tp1, v_tp1] = adam_update(grad, params_t, m_t, v_t, t)
-    alpha = 10^-2;
+    alpha = 5*10^-3;
     beta1 = .9;
     beta2 = .999;
     epsilon = 10^-8;
