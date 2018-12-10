@@ -98,25 +98,26 @@ function [total_dist, total_step] = simulate_walker_terrain_stoc(T,controller,if
         % ==================================
        
         
-        if first_step == false
-            okay_to_send = false;
-            while okay_to_send == false
-                mu = 0;
-                sigma = 1;
-                epsilon = normrnd(mu, sigma);
-                
-                % send out the epsilon when it's smaller than 0.1 in
-                % magnitude
-                if abs(epsilon) <= 0.01
-                    okay_to_send = true;
-                end
-                
-            end
-        else
-            first_step = false;
-            epsilon = 0;
-        end
+%         if first_step == false
+%             okay_to_send = false;
+%             while okay_to_send == false
+%                 mu = 0;
+%                 sigma = 1;
+%                 epsilon = normrnd(mu, sigma);
+%                 
+%                 % send out the epsilon when it's smaller than 0.1 in
+%                 % magnitude
+%                 if abs(epsilon) <= 0.01
+%                     okay_to_send = true;
+%                 end
+%                 
+%             end
+%         else
+%             first_step = false;
+%             epsilon = 0;
+%         end
         
+        epsilon = 0;
 %         fprintf('epsilon: %f \n', epsilon);
         
         % ==================================

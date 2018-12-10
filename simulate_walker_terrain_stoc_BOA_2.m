@@ -1,4 +1,4 @@
-function [total_dist, total_step] = simulate_walker_terrain_stoc_BOA(T,controller,ifplot)
+function [total_dist, total_step] = simulate_walker_terrain_stoc_BOA_2(T,controller,ifplot)
 
     %   Simulates an active walking robot from time 0 to T
     %   controller is a function with signature F = controller(t,y) that
@@ -34,9 +34,9 @@ function [total_dist, total_step] = simulate_walker_terrain_stoc_BOA(T,controlle
     global epsilon
     
     % for calculating BOA
-    global theta_start
+%     global theta_start
     global theta_dot_start
-    global phi_start
+%     global phi_start
     global phi_dot_start
     
     % first_step is to make sure the first step of the walker is not
@@ -220,7 +220,7 @@ function [total_dist, total_step] = simulate_walker_terrain_stoc_BOA(T,controlle
     % gam is angle of slope
     % tci is Collision index vector
     
-    [total_step, total_dist] = wmview_BOA(y,gam,tci,ifplot);
+    [total_step, total_dist] = wmview_BOA_2(y,gam,tci,ifplot);
 
 end
 
