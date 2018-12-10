@@ -51,7 +51,7 @@ global phi_dot_start
 %% ===============benchmark PD controller==============
 
 T = 50; %largest time we're willing to run the sim for
-
+n_hidden = 50;
 % this is usually around 67 for |epsilon| < .03 
 
 kp = 16;
@@ -69,6 +69,7 @@ weight = .1
 pd_controller = @(t,y) original_controller(y,t,a,tau,k, alph);
 zero_controller = @(t,y) 0;
 
+load hybrid_params_opt.mat  %load trained params
 [W1,b1,W2,b2] = params_to_weights(params_opt,n_hidden);
 hybrid_controller = @(t,y) pd_controller(t,y) + weight*nn_controller(y,W1,b1,W2,b2,activ1,activ2)
 
