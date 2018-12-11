@@ -13,40 +13,6 @@ global phi_start
 global theta_dot_start
 global phi_dot_start
 
-%% ===============CNN parameter stuff==============
-
-% %define params of neural network
-% tanh_activ = @(x) tanh(x)
-% sigmoid_activ = @(x) 1./(1 + exp(-x));
-% linear_activ = @(x) x
-% 
-% activ1 = sigmoid_activ
-% activ2 = linear_activ%tanh_activ
-% 
-% n_hidden = 50;
-% [W1,b1] = xavier_init(5, n_hidden);
-% [W2,b2] = xavier_init(n_hidden, 1);
-% n_W1 = size(W1,1)*size(W1,2);
-% n_b1 = size(b1,1);
-% n_W2 = size(W2,1)*size(W2,2);
-% n_b2 = size(b2,1);
-% 
-% W1_flat = reshape(W1,[1,n_W1]);
-% b1_flat = reshape(b1,[1,n_b1]);
-% W2_flat = reshape(W2,[1,n_W2]);
-% b2_flat = reshape(b2,[1,n_b2]);
-% params = [W1_flat, b1_flat, W2_flat, b2_flat];
-% n_params = length(params)
-% 
-% %training params
-% sigma = 10^-1; %variance in perturbatins from params
-% N = 100 %populatin size
-% num_iters = 1000;  %number of updates we want to perform on params
-% T = 50 %largest time we're willing to run the sim for
-% % initial_alpha = 5*10^-7;  %initial learning rate.  Decays with iter
-% % max_delta = .1;
-% % decay = 0.01  %variable determining rate of decay of alpha (learning rate)
-% %k = 0;
 
 %% ===============benchmark PD controller==============
 
@@ -68,6 +34,14 @@ weight = .1
 
 pd_controller = @(t,y) original_controller(y,t,a,tau,k, alph);
 zero_controller = @(t,y) 0;
+
+%define params of neural network
+tanh_activ = @(x) tanh(x)
+sigmoid_activ = @(x) 1./(1 + exp(-x));
+linear_activ = @(x) x
+
+activ1 = sigmoid_activ
+activ2 = linear_activ
 
 load hybrid_params_opt.mat  %load trained params
 [W1,b1,W2,b2] = params_to_weights(params_opt,n_hidden);
