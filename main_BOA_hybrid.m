@@ -104,7 +104,7 @@ for i = 1:grid_spacing
     end
 end
 %%
-save('hy_best_phi_dot_X_theta_dot_Y.mat', 'thetaX_phiY');
+% save('copy_hy_best_phi_dot_X_theta_dot_Y.mat', 'thetaX_phiY');
 
 %% compare graph
 % % load('thetaX_phiY.mat');
@@ -230,10 +230,10 @@ function capped = cap(x,max_norm)
 end
 
 function F = original_controller(y,t,a,tau,k, alpha)
-
-k = -0.08;
-%     F = a*sin(2*pi/tau*t)+ k(1)*y(3) + k(2)*y(4);
-F = k(1)*y(3); 
+% 
+% k = -0.08;
+% %     F = a*sin(2*pi/tau*t)+ k(1)*y(3) + k(2)*y(4);
+% F = k(1)*y(3); 
 
     F = 0;
     

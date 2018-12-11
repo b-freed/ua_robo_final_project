@@ -125,7 +125,7 @@ for i = 1:grid_spacing
     end
 end
 %%
-save('copy_P_best_phi_dot_X_theta_dot_Y.mat', 'thetaX_phiY');
+save('copy_P1_best_phi_dot_X_theta_dot_Y.mat', 'thetaX_phiY');
 
 %% compare graph
 % % load('thetaX_phiY.mat');
