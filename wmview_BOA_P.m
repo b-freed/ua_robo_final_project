@@ -1,4 +1,4 @@
-function [total_step, total_dist] = wmview_BOA_2(y,slope_angle,tci,ifplot)
+function [total_step, total_dist] = wmview_BOA_P(y,slope_angle,tci,ifplot)
 %WMVIEW  Animate passive dynamic walking data
 %   WMVIEW(Y, GAM, TCI) animates the passive dynamic data in Y for slope angle
 %   GAM and collision indices TCI.

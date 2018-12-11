@@ -51,7 +51,7 @@ global phi_dot_start
 %% ===============benchmark PD controller==============
 
 T = 50; %largest time we're willing to run the sim for
-
+n_hidden = 50;
 % this is usually around 67 for |epsilon| < .03 
 
 kp = 16;
@@ -64,9 +64,13 @@ alph = asin(0.5*s);
 gam = 0;
 a = 0;
 tau = 3.84;
+weight = .1
 
 pd_controller = @(t,y) original_controller(y,t,a,tau,k, alph);
 zero_controller = @(t,y) 0;
+
+load hybrid_params_opt.mat  %load trained params
+[W1,b1,W2,b2] = params_to_weights(params_opt,n_hidden);
 
 % To calculate basin of attraction, use a customized simulation copy
 % [total_dist, total_step] = simulate_walker_terrain_stoc_BOA(T,pd_controller,false);
@@ -74,7 +78,7 @@ zero_controller = @(t,y) 0;
 % total_step
 %% BOA plot
 
-grid_spacing  = 100;
+grid_spacing  = 10;
 
 thetaX_phiY = 7 * ones(grid_spacing, grid_spacing); % put a random #7 there just for the easy of debugging
 
@@ -113,7 +117,7 @@ for i = 1:grid_spacing
 
         phi_dot_start = initial_phi_dot(j);
         
-        [total_dist, total_step] = simulate_walker_terrain_stoc_BOA_2(T,pd_controller,false);
+        [total_dist, total_step] = simulate_walker_terrain_stoc_BOA_PD(T,pd_controller,false);
         
         thetaX_phiY(i,j) = ifStable;
         
@@ -125,7 +129,7 @@ for i = 1:grid_spacing
     end
 end
 %%
-save('copy_P_best_phi_dot_X_theta_dot_Y.mat', 'thetaX_phiY');
+% save('copy_best_phi_dot_X_theta_dot_Y.mat', 'thetaX_phiY');
 
 %% compare graph
 % % load('thetaX_phiY.mat');
@@ -148,7 +152,7 @@ close all
 % % phi_start = initial_phi(14);
 % phi_dot_start = initial_phi_dot(6);
 % phi_dot_start = -0.4;
-% [total_dist, total_step] = simulate_walker_terrain_stoc_BOA_2(T,pd_controller,true);
+% [total_dist, total_step] = simulate_walker_terrain_stoc_BOA_PD(T,pd_controller,true);
 
 %%
 
@@ -255,16 +259,14 @@ function capped = cap(x,max_norm)
 end
 
 function F = original_controller(y,t,a,tau,k, alpha)
+%     F = a*sin(2*pi/tau*t)+ k(1)*y(3) + k(2)*y(4);
+%     F = k(1)*y(3); 
 
-    % P controller
-    k = -0.08;
-    F = k *y(3); 
-
-%     F = 0;
-%     
-%     if y(1)< 0
-%           F = k(1)*(-2*alpha - y(3)) + k(2)*(0 - y(4));
-%     end
+    F = 0;
+    
+    if y(1)< 0
+          F = k(1)*(-2*alpha - y(3)) + k(2)*(0 - y(4));
+    end
 end
 
 function [params_tp1, m_tp1, v_tp1] = adam_update(grad, params_t, m_t, v_t, t)
